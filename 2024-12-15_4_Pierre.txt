@@ -1,0 +1,18 @@
+Pierre
+Elfe
+Wizard
+lvl: 1
+xp: 1
+_strength 5
+_magic 30
+_agility 20
+_speed 20
+_charisma 30
+_chance 35
+_endurance 44
+_life_point 54
+_attack 65
+_defense 74
+wizard baton
+life potion
+life potion

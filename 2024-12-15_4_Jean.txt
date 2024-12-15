@@ -1,0 +1,18 @@
+Jean
+Human
+Warrior
+lvl: 1
+xp: 1
+_strength 25
+_magic 15
+_agility 20
+_speed 25
+_charisma 25
+_chance 30
+_endurance 99
+_life_point 154
+_attack 130
+_defense 199
+dragon sword
+life potion
+life potion
