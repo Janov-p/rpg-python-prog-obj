@@ -488,41 +488,158 @@ class Hero(Avatar):
         pass
 
 
-def main():
+class Tableau:
+    def __init__(self, hero, length=20):
+        """
+        Initialize the tableau game mode
+        :param hero: The hero playing the game
+        :param length: Length of the tableau (default 20)
+        """
+        self._hero = hero
+        self._length = length
+        self._board = self._generate_board()
+        self._current_position = 0
+
+    def _generate_board(self):
+        """
+        Generate a board with random elements
+        Possible elements:
+        - None (empty space)
+        - Item
+        - Enemy
+        """
+        board = []
+        for _ in range(self._length):
+            element_type = random.choices(
+                ['empty', 'item', 'enemy'],
+                weights=[0.5, 0.25, 0.25]
+            )[0]
+
+            if element_type == 'empty':
+                board.append(None)
+            elif element_type == 'item':
+                # Generate a random item from hero's possible items
+                possible_items = [Potion]  # Add more item types as needed
+                board.append(random.choice(possible_items))
+            elif element_type == 'enemy':
+                # Generate a random enemy
+                enemy_races = [orc, dwarf]
+                enemy_classes = [warrior, wizard]
+                enemy = Mobs({
+                    'name': f'Enemy at pos {len(board)}',
+                    'race': random.choice(enemy_races),
+                    'classe': random.choice(enemy_classes),
+                    'bag': Bag({"sizeMax": 10, "items": []}),
+                    'equipment': [sword],  # Default equipment
+                    'element': 'Fire',
+                    'type': 'random'
+                })
+                board.append(enemy)
+
+        return board
+
+    def roll_dice(self):
+        """
+        Roll a dice to determine movement
+        """
+        return random.randint(1, 6)
+
+    def play_turn(self):
+        """
+        Play a single turn in the tableau
+        Returns output of the turn
+        """
+        output = ""
+        dice_roll = self.roll_dice()
+        output += f"{self._hero.nom} rolls {dice_roll}\n"
+
+        # Move hero
+        self._current_position += dice_roll
+        output += f"{self._hero.nom} moves to position {self._current_position}\n"
+
+        # Check if hero has gone past the board
+        if self._current_position >= self._length:
+            output += f"{self._hero.nom} completed the tableau!\n"
+            self._hero.setXP(100)  # Reward XP for completing the tableau
+            return output
+
+        # Check current board element
+        current_element = self._board[self._current_position]
+
+        if current_element is None:
+            output += "Nothing happened. The space is empty.\n"
+        elif isinstance(current_element, Item):
+            output += f"{self._hero.nom} found an item: {current_element.name}\n"
+            self._hero.bag.addItem(current_element)
+            self._board[self._current_position] = None  # Remove item after picking up
+        elif isinstance(current_element, Mobs):
+            output += f"Enemy encountered: {current_element.nom}\n"
+            quest = Quest({'lAvatar': [current_element], 'lvl': 1, 'gift': sword})
+            battle_result = quest.run(self._hero)
+            output += battle_result
+
+        return output
+
+    def play_game(self):
+        """
+        Play the entire tableau game
+        """
+        output = f"Starting Tableau Game with {self._hero.nom}\n"
+
+        while self._current_position < self._length:
+            turn_output = self.play_turn()
+            output += turn_output
+
+            # Check if hero died during the game
+            if self._hero.life <= 0:
+                output += f"{self._hero.nom} died. Game Over!\n"
+                break
+
+        if self._current_position >= self._length:
+            output += f"{self._hero.nom} completed the tableau and gained experience!\n"
+
+        return output
+
     ### RACE
-    statElfe = Stat({'strength': 5, 'magic': 10, 'agility': 10, 'speed': 5, 'charisma': 5, 'chance': 5})
-    elfe = Race('Elfe', statElfe)
-    statHuman = Stat({'strength': 10, 'magic': 10, 'agility': 5, 'speed': 5, 'charisma': 5, 'chance': 5})
-    human = Race('Human', statHuman)
-    statDwarf = Stat({'strength': 10, 'magic': 0, 'agility': 10, 'speed': 5, 'charisma': 5, 'chance': 10})
-    dwarf = Race('Dwarf', statDwarf)
-    statOrc = Stat({'strength': 15, 'magic': 0, 'agility': 5, 'speed': 10, 'charisma': 5, 'chance': 5})
-    orc = Race('Orc', statOrc)
-    ### CLASS
-    statWizard = Stat({'strength': 0, 'magic': 10, 'agility': 0, 'speed': 0, 'charisma': 10, 'chance': 10})
-    wizard = Race('Wizard', statWizard)
-    statWarrior = Stat({'strength': 10, 'magic': 0, 'agility': 5, 'speed': 5, 'charisma': 5, 'chance': 5})
-    warrior = Race('Warrior', statWarrior)
-    ### ITEMS
-    statSword = Stat({'strength': 5, 'magic': 0, 'agility': 5, 'speed': 5, 'charisma': 0, 'chance': 5})
-    sword = Equipment({'classList': 'warrior', 'place': 'hand', 'name': 'dragon sword', 'type': 'sword', 'space': 2, },
-                      statSword)
-    statBaton = Stat({'strength': 0, 'magic': 10, 'agility': 0, 'speed': 5, 'charisma': 0, 'chance': 5})
-    baton = Equipment({'classList': 'wizard', 'place': 'hand', 'name': 'wizard baton', 'type': 'baton', 'space': 2, },
-                      statBaton)
-    statPotion = Stat({'strength': 0, 'magic': 0, 'agility': 0, 'speed': 0, 'charisma': 0, 'chance': 0})
-    Potion = Item({'name': 'life potion', 'type': 'potion', 'space': 2, }, statPotion)
-    ### BAG
-    myBag = Bag({"sizeMax": 20, "items": [Potion, Potion]})
-    ### MOBS
-    mechant1 = Mobs(
-        {'name': 'orc 1', 'race': orc, 'classe': warrior, 'bag': myBag, 'equipment': [sword], 'element': 'Fire',
-         'type': 'soldier'})
-    mechant2 = Mobs(
-        {'name': 'orc 2', 'race': orc, 'classe': warrior, 'bag': myBag, 'equipment': [sword], 'element': 'Fire',
-         'type': 'soldier'})
-    hero1 = Hero({'name': 'Jean', 'race': human, 'classe': warrior, 'bag': myBag, 'equipment': [sword], 'element': 'Fire',
-                  'profession': 'chomeur'})
+
+
+statElfe = Stat({'strength': 5, 'magic': 10, 'agility': 10, 'speed': 5, 'charisma': 5, 'chance': 5})
+elfe = Race('Elfe', statElfe)
+statHuman = Stat({'strength': 10, 'magic': 10, 'agility': 5, 'speed': 5, 'charisma': 5, 'chance': 5})
+human = Race('Human', statHuman)
+statDwarf = Stat({'strength': 10, 'magic': 0, 'agility': 10, 'speed': 5, 'charisma': 5, 'chance': 10})
+dwarf = Race('Dwarf', statDwarf)
+statOrc = Stat({'strength': 15, 'magic': 0, 'agility': 5, 'speed': 10, 'charisma': 5, 'chance': 5})
+orc = Race('Orc', statOrc)
+### CLASS
+statWizard = Stat({'strength': 0, 'magic': 10, 'agility': 0, 'speed': 0, 'charisma': 10, 'chance': 10})
+wizard = Race('Wizard', statWizard)
+statWarrior = Stat({'strength': 10, 'magic': 0, 'agility': 5, 'speed': 5, 'charisma': 5, 'chance': 5})
+warrior = Race('Warrior', statWarrior)
+### ITEMS
+statSword = Stat({'strength': 5, 'magic': 0, 'agility': 5, 'speed': 5, 'charisma': 0, 'chance': 5})
+sword = Equipment({'classList': 'warrior', 'place': 'hand', 'name': 'dragon sword', 'type': 'sword', 'space': 2, },
+                  statSword)
+statBaton = Stat({'strength': 0, 'magic': 10, 'agility': 0, 'speed': 5, 'charisma': 0, 'chance': 5})
+baton = Equipment({'classList': 'wizard', 'place': 'hand', 'name': 'wizard baton', 'type': 'baton', 'space': 2, },
+                  statBaton)
+statPotion = Stat({'strength': 0, 'magic': 0, 'agility': 0, 'speed': 0, 'charisma': 0, 'chance': 0})
+Potion = Item({'name': 'life potion', 'type': 'potion', 'space': 2, }, statPotion)
+### BAG
+myBag = Bag({"sizeMax": 20, "items": [Potion, Potion]})
+### MOBS
+mechant1 = Mobs(
+    {'name': 'orc 1', 'race': orc, 'classe': warrior, 'bag': myBag, 'equipment': [sword], 'element': 'Fire',
+     'type': 'soldier'})
+mechant2 = Mobs(
+    {'name': 'orc 2', 'race': orc, 'classe': warrior, 'bag': myBag, 'equipment': [sword], 'element': 'Fire',
+     'type': 'soldier'})
+
+
+def main():
+    hero1 = Hero(
+        {'name': 'Jean', 'race': human, 'classe': warrior, 'bag': myBag, 'equipment': [sword], 'element': 'Fire',
+         'profession': 'chomeur'})
     hero2 = Hero(
         {'name': 'Pierre', 'race': elfe, 'classe': wizard, 'bag': myBag, 'equipment': [baton], 'element': 'Fire',
          'profession': 'chomeur'})
@@ -533,7 +650,10 @@ def main():
     ### QUEST
     firstQuest = Quest({'lAvatar': [mechant1, mechant2], 'lvl': 2, 'gift': sword})
     # firstQuest = Quest({'lAvatar': [hero2], 'lvl': 2, 'gift': sword})
-    firstQuest.run(hero1)
+    # firstQuest.run(hero1)
+    tableau_game = Tableau(hero1)
+    game_result = tableau_game.play_game()
+    print(game_result)
 
 
 if __name__ == "__main__":
